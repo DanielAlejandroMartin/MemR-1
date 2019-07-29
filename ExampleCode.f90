@@ -5,8 +5,8 @@
 ! 2- Main Program (Calls "Initial_Conditions and then LEARN_PROCESS
 ! 3-Subroutine Initial_Conditons
 ! 4- Subroutine LEARN_PROCESS: Most important one 
-! 5- Subroutine Press
-! 6- Subroutine Correct
+! 5- Subroutine ReadProcedure
+! 6- Subroutine WriteProcedure
 ! 7- Subroutine  Measure_Current
 ! 8- Subroutine Update_Resistence 
 ! 9- Subroutine Matrix_Make 
@@ -66,8 +66,8 @@ real(8), parameter::  dt=1 !Time Discretization
 
 integer step
 integer Proces
-integer Written
-INTEGER numberofcorrects
+integer To_Be_Read
+INTEGER numberofWriteProcedures
 
 
 
@@ -172,28 +172,28 @@ implicit none
 integer nerror
 
 do step=1,50000 !s_max=50000
-DO numberofcorrects=1,80 !C_max=80
+DO numberofWriteProcedures=1,80 !C_max=80
 
-Written=step+1-ni*int(step/ni) !Select which input Node we are "Writing"
+To_Be_Read=step+1-ni*int(step/ni) !Select which input Node we are "Writing"
 V0=0.001
-call Press
+call ReadProcedure
 ! Look For the ouptput with largest current.
 maxcorr=1; 	do k=1,nk; 	if (totcork(k)>totcork(maxcorr)) maxcorr=k; enddo
-!Correct if it is not the expected one.
-if ((maxcorr-truthtable(Written))**2>0) then
+!WriteProcedure if it is not the expected one.
+if ((maxcorr-truthtable(To_Be_Read))**2>0) then
 	V0=0.1
-	call Correct 
+	call WriteProcedure 
 	endif
-ENDDO !numberofcorrects 
+ENDDO !numberofWriteProcedures 
 1234 continue
 Nerror=0
 
 
 !MEASURE
-do Written=1,ni
-	V0=0.001; 	call Press
+do To_Be_Read=1,ni
+	V0=0.001; 	call ReadProcedure
 	maxcorr=1; 	do k=1,nk; 	if (totcork(k)>totcork(maxcorr)) maxcorr=k; enddo
-if (maxcorr /= truthtable(Written)) Nerror=Nerror+1
+if (maxcorr /= truthtable(To_Be_Read)) Nerror=Nerror+1
 
 enddo
 write(11,*) step, Nerror
@@ -207,11 +207,11 @@ write(12,*) step
 end subroutine
 
 !***********************************************************************
-!Subroutne Correct
+!Subroutne WriteProcedure
 !***********************************************************************
 
 
-subroutine Press
+subroutine ReadProcedure
 use vars! Variables of the whole system
 implicit none
 !make matrix
@@ -225,10 +225,10 @@ call Measure_Current
 end subroutine
 
 
-subroutine Correct
+subroutine WriteProcedure
 use vars! Variables of the whole system
 implicit none
-INTEGER ss !NUMBER OF UNIT TIMES WHERE i CORRECT
+INTEGER ss !NUMBER OF UNIT TIMES WHERE i WriteProcedure
 
 do ss=1,5
 !dt=0.0025
@@ -293,16 +293,16 @@ MatrizEq=0 !Matrix
 Solutions_Vector=0 !SolutionVector
 
 
-!********************** First Ni equations Fix Vi
+!********************** First Ni equations: Fix Vi=0 for all but one
 do i=1,Ni
 Matrizeq(i,i)=1
 enddo
-!Set written input neuron voltage as V0
-i=Written
+!Set To_Be_Read input neuron voltage as V0
+i=To_Be_Read
 Solutions_Vector(i,1)=V0
 
 
-!*********************** Next j equations (Ni+1 to Ni+nj)
+!*********************** Next Nj equations (Ni+1 to Ni+nj)
 !Sum of currents over jth hiden node is 0
 ! Current Iij is variable number Variables_Voltaje+j+(i-1)*nj
 do j=1,nj
@@ -314,14 +314,14 @@ do k=1,nk
 Matrizeq(j+ni,Variables_Voltaje+Variables_CurrentA+k+(j-1)*nk)=-1
 enddo
 enddo
-!********************** !Next k equations (Ni+Nj+1 to Ni+nj+nk)
+!********************** !Next Nk equations (Ni+Nj+1 to Ni+nj+nk)
 !Vk=0 !  Vk is variable Ni+Nj+k
 do k=1,nk
 Matrizeq(ni+nj+k,ni+nj+k)=1
 enddo
 
-!******************** !Next: set of equations !Vi-Vj-I(i,j)*R(i,j)=0
-!Eqs Ni+nj+nk to  Ni+nj+nk+Ni*Nj 
+!******************** !Next: Ni*Nj set of equations  (Eqs Ni+nj+nk to  Ni+nj+nk+Ni*Nj)
+!Vi-Vj-I(i,j)*R(i,j)=0
 ! For input (i) to Hiden (j) Nodes
 !Ecuation for i,j:
 do i=1,ni
@@ -335,9 +335,9 @@ Matrizeq(Equation_Number,Variables_Voltaje+j+(i-1)*nj)=-1*Rij(i,j)
 enddo
 enddo
 
-!*********************** !Next equiations Vj-Vk-I(j,k)*R(j,k)
-!Equiation number   Ni+nj+nk+Ni*Nj+1 to the end
-!Ecuacion for j,k:
+!*********************** !Next equiations (Ni+nj+nk+Ni*Nj+1 to the end)
+!Vj-Vk-I(j,k)*R(j,k)
+!Equiation  for j,k:
 do j=1,nj
 do k=1,nk
 Equation_Number=Ni+nj+nk+Ni*Nj+k+(j-1)*nk
