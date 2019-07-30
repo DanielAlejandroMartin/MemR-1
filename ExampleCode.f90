@@ -1,12 +1,12 @@
-﻿!***********************************************************************
+!***********************************************************************
 !	Simple Code for Simulating The Memristor Metwork
 ! The program is organized as Follows:
 ! 1-Module Variables (includes All Variables needed for computation)
 ! 2- Main Program (Calls "Initial_Conditions and then LEARN_PROCESS
 ! 3-Subroutine Initial_Conditons
 ! 4- Subroutine LEARN_PROCESS: Most important one 
-! 5- Subroutine ReadProcedure
-! 6- Subroutine WriteProcedure
+! 5- Subroutine MeasureProcedure
+! 6- Subroutine DepressProcedure
 ! 7- Subroutine  Measure_Current
 ! 8- Subroutine Update_Resistence 
 ! 9- Subroutine Matrix_Make 
@@ -66,8 +66,8 @@ real(8), parameter::  dt=1 !Time Discretization
 
 integer step
 integer Proces
-integer To_Be_Read
-INTEGER numberofWriteProcedures
+integer To_Be_measured
+INTEGER numberofDepressProcedures
 
 
 
@@ -172,28 +172,28 @@ implicit none
 integer nerror
 
 do step=1,50000 !s_max=50000
-DO numberofWriteProcedures=1,80 !C_max=80
+DO numberofDepressProcedures=1,80 !C_max=80
 
-To_Be_Read=step+1-ni*int(step/ni) !Select which input Node we are "Writing"
+To_Be_measured=step+1-ni*int(step/ni)!Select which input Node we are "Writing"
 V0=0.001
-call ReadProcedure
+call MeasureProcedure
 ! Look For the ouptput with largest current.
 maxcorr=1; 	do k=1,nk; 	if (totcork(k)>totcork(maxcorr)) maxcorr=k; enddo
-!WriteProcedure if it is not the expected one.
-if ((maxcorr-truthtable(To_Be_Read))**2>0) then
+!DepressProcedure if it is not the expected one.
+if ((maxcorr-truthtable(To_Be_measured))**2>0) then
 	V0=0.1
-	call WriteProcedure 
+	call DepressProcedure 
 	endif
-ENDDO !numberofWriteProcedures 
+ENDDO !numberofDepressProcedures 
 1234 continue
 Nerror=0
 
 
-!MEASURE
-do To_Be_Read=1,ni
-	V0=0.001; 	call ReadProcedure
+!CHECK
+do To_Be_measured=1,ni
+	V0=0.001; 	call MeasureProcedure
 	maxcorr=1; 	do k=1,nk; 	if (totcork(k)>totcork(maxcorr)) maxcorr=k; enddo
-if (maxcorr /= truthtable(To_Be_Read)) Nerror=Nerror+1
+if (maxcorr /= truthtable(To_Be_measured)) Nerror=Nerror+1
 
 enddo
 write(11,*) step, Nerror
@@ -207,11 +207,11 @@ write(12,*) step
 end subroutine
 
 !***********************************************************************
-!Subroutne WriteProcedure
+!Subroutne DepressProcedure
 !***********************************************************************
 
 
-subroutine ReadProcedure
+subroutine MeasureProcedure
 use vars! Variables of the whole system
 implicit none
 !make matrix
@@ -225,10 +225,10 @@ call Measure_Current
 end subroutine
 
 
-subroutine WriteProcedure
+subroutine DepressProcedure
 use vars! Variables of the whole system
 implicit none
-INTEGER ss !NUMBER OF UNIT TIMES WHERE i WriteProcedure
+INTEGER ss !NUMBER OF UNIT TIMES WHERE i DepressProcedure
 
 do ss=1,5
 !dt=0.0025
@@ -297,8 +297,8 @@ Solutions_Vector=0 !SolutionVector
 do i=1,Ni
 Matrizeq(i,i)=1
 enddo
-!Set To_Be_Read input neuron voltage as V0
-i=To_Be_Read
+!Set To_Be_measured input neuron voltage as V0
+i=To_Be_measured
 Solutions_Vector(i,1)=V0
 
 
